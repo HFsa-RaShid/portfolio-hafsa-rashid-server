@@ -23,35 +23,55 @@ const client = new MongoClient(uri, {
   }
 });
 
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
+
 async function run() {
   try {
     // await client.connect();
     const db = client.db("portfolio");
-    const bucket = new GridFSBucket(db, { bucketName: 'portfolio_hafsa' });
+    const bucket = new GridFSBucket(db, { bucketName: 'resume_hafsa' });
 
     // Download endpoint
     app.get('/download/:id', (req, res) => {
+      const id = new ObjectId(req.params.id);
+      const downloadStream = bucket.openDownloadStream(id);
 
-        const id = new ObjectId(req.params.id);
-        const downloadStream = bucket.openDownloadStream(id);
+      res.set({
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="Hafsa_Rashid_Web_Developer_Resume.pdf"`
+      });
 
-        res.set({
-          'Content-Type': 'application/pdf',
-          'Content-Disposition': `attachment; filename="Hafsa_Rashid_Web_Developer_Resume.pdf"`
-        });
+      downloadStream.pipe(res);
 
-        downloadStream.pipe(res);
+      downloadStream.on('error', (err) => {
+        console.error('Error downloading file:', err);
+        res.status(404).send('File not found');
+      });
 
-        downloadStream.on('error', (err) => {
-          console.error('Error downloading file:', err);
-          res.status(404).send('File not found');
-        });
-
-        downloadStream.on('end', () => {
-          res.end();
-        });
-
+      downloadStream.on('end', () => {
+        res.end();
+      });
     });
+
+    // Upload endpoint
+    // app.post('/upload', upload.single('file'), (req, res) => {
+    //   const readableStream = new Readable();
+    //   readableStream.push(req.file.buffer);
+    //   readableStream.push(null);
+
+    //   const uploadStream = bucket.openUploadStream(req.file.originalname);
+    //   readableStream.pipe(uploadStream);
+
+    //   uploadStream.on('finish', () => {
+    //     res.status(201).send({ fileId: uploadStream.id });
+    //   });
+
+    //   uploadStream.on('error', (err) => {
+    //     console.error('Error uploading file:', err);
+    //     res.status(500).send('Error uploading file');
+    //   });
+    // });
 
     app.post('/contact', (req, res) => {
       const { name, email, subject, message } = req.body;
@@ -66,7 +86,7 @@ async function run() {
 
       const mailOptions = {
         from: email,
-        to: 'hafsa.cse7.bu@gmail.com',
+        to: 'hafsarashid028@gmail.com',
         subject: `Contact Form Submission: ${subject}`,
         text: `Name: ${name}\nEmail: ${email}\n\nMessage:\n${message}`,
       };
@@ -92,9 +112,9 @@ async function run() {
 run().catch(console.dir);
 
 app.get('/', (req, res) => {
-  res.send('Portfolio CRUD is running');
+  res.send('Portfolio is running');
 });
 
 app.listen(port, () => {
-  console.log(`Portfolio CRUD is running on port ${port}`);
+  console.log(`Portfolio is running on port ${port}`);
 });
